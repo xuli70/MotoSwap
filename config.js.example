@@ -1,0 +1,141 @@
+/**
+ * config.js.example - MotoSwap Local Development Configuration
+ * 
+ * INSTRUCTIONS:
+ * 1. Copy this file as 'config.js' in the same directory
+ * 2. Modify the values below with your actual configuration
+ * 3. NEVER commit config.js to the repository (it's in .gitignore)
+ * 4. Only use this for local development, NOT for production
+ */
+
+// MotoSwap configuration for local development
+window.MOTOSWAP_CONFIG = {
+    // === APP CONFIGURATION ===
+    APP_NAME: 'MotoSwap',
+    ENVIRONMENT: 'development',
+    VERSION: '1.0.0',
+    
+    // === BACKEND INTEGRATION (Future) ===
+    // When you're ready to integrate with Supabase:
+    // 1. Create a Supabase project at https://app.supabase.com
+    // 2. Get your URL and anon key from Settings → API
+    // 3. Replace the values below
+    SUPABASE_URL: '',  // Example: 'https://yourproject.supabase.co'
+    SUPABASE_ANON_KEY: '',  // Your Supabase anon key here
+    
+    // === AUTHENTICATION ===
+    // Currently not used (static app), but ready for future implementation
+    AUTH_ENABLED: false,
+    PASSWORD_USER: 'moto123',    // For future user authentication
+    PASSWORD_ADMIN: 'admin123',  // For future admin features
+    
+    // === API CONFIGURATION ===
+    // For external services (maps, weather, etc.)
+    API_BASE_URL: '',  // Your API base URL if needed
+    
+    // === FEATURE FLAGS ===
+    // Enable/disable features during development
+    FEATURES: {
+        MESSAGING: true,           // Chat system
+        REVIEWS: true,             // User reviews
+        ADVANCED_SEARCH: true,     // Advanced filtering
+        NOTIFICATIONS: false,      // Push notifications (future)
+        DEBUG_MODE: true           // Extra logging for development
+    }
+};
+
+// Legacy compatibility
+window.APP_CONFIG = window.MOTOSWAP_CONFIG;
+
+// Simple env object for backward compatibility
+window.env = {
+    SUPABASE_URL: window.MOTOSWAP_CONFIG.SUPABASE_URL,
+    SUPABASE_ANON_KEY: window.MOTOSWAP_CONFIG.SUPABASE_ANON_KEY,
+    ENVIRONMENT: 'development'
+};
+
+// Configuration validation for development
+window.validateMotoSwapConfig = function() {
+    const config = window.MOTOSWAP_CONFIG;
+    
+    console.log('🏠 LOCAL DEVELOPMENT configuration loaded');
+    console.log('🏍️ MotoSwap Environment:', config.ENVIRONMENT);
+    
+    // Development-specific validations
+    if (config.FEATURES.DEBUG_MODE) {
+        console.log('🐛 Debug mode enabled');
+        console.log('📋 Current configuration:', config);
+    }
+    
+    // Check if Supabase is configured
+    if (!config.SUPABASE_URL) {
+        console.log('ℹ️ Supabase not configured - using mock data (normal for current version)');
+    } else {
+        console.log('✅ Supabase configured for testing');
+    }
+    
+    return true;
+};
+
+// Initialize configuration
+window.validateMotoSwapConfig();
+
+// Development helper functions
+window.MotoSwapDev = {
+    // Show current configuration
+    showConfig: function() {
+        console.table(window.MOTOSWAP_CONFIG);
+    },
+    
+    // Toggle debug mode
+    toggleDebug: function() {
+        window.MOTOSWAP_CONFIG.FEATURES.DEBUG_MODE = !window.MOTOSWAP_CONFIG.FEATURES.DEBUG_MODE;
+        console.log('🐛 Debug mode:', window.MOTOSWAP_CONFIG.FEATURES.DEBUG_MODE ? 'ON' : 'OFF');
+    },
+    
+    // Quick feature toggle
+    toggleFeature: function(feature) {
+        if (window.MOTOSWAP_CONFIG.FEATURES.hasOwnProperty(feature)) {
+            window.MOTOSWAP_CONFIG.FEATURES[feature] = !window.MOTOSWAP_CONFIG.FEATURES[feature];
+            console.log(`🎛️ Feature ${feature}:`, window.MOTOSWAP_CONFIG.FEATURES[feature] ? 'ON' : 'OFF');
+        } else {
+            console.log('❌ Feature not found:', feature);
+        }
+    }
+};
+
+// Log available development tools
+console.log('🛠️ Development tools available:');
+console.log('   MotoSwapDev.showConfig() - Show current configuration');
+console.log('   MotoSwapDev.toggleDebug() - Toggle debug mode');
+console.log('   MotoSwapDev.toggleFeature("FEATURE_NAME") - Toggle feature');
+
+/**
+ * CONFIGURATION STEPS:
+ * 
+ * 1. BASIC SETUP (CURRENT):
+ *    - Copy this file as config.js
+ *    - Open index.html in browser
+ *    - App should work with mock data
+ * 
+ * 2. SUPABASE INTEGRATION (FUTURE):
+ *    - Create Supabase project
+ *    - Copy URL and anon key to SUPABASE_* fields
+ *    - Set AUTH_ENABLED to true when ready
+ *    - Test database connection
+ * 
+ * 3. EXTERNAL APIS (OPTIONAL):
+ *    - Add API keys for maps, weather, etc.
+ *    - Configure API_BASE_URL if needed
+ *    - Test external integrations
+ * 
+ * 4. FEATURE DEVELOPMENT:
+ *    - Use FEATURES object to enable/disable features
+ *    - DEBUG_MODE for extra logging
+ *    - Test features individually
+ * 
+ * 5. TESTING:
+ *    - Open browser developer console
+ *    - Check for configuration errors
+ *    - Use MotoSwapDev tools for debugging
+ */

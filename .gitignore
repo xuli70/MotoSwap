@@ -1,0 +1,54 @@
+.mcp.json
+config.js
+test-*.html
+
+# Variables de entorno (contienen keys sensibles)
+.env
+.env.local
+.env.production
+.env.development
+env.example.js
+
+# Archivo env.js generado dinámicamente en producción (opcional, el local es seguro)
+env.js
+
+# Archivos de respaldo
+*.backup
+*.bak
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Development and testing
+test-*.html
+debug.html
+*_backup.*
+
+# Node.js (if added in future)
+node_modules/
+dist/
+build/
+package-lock.json
+yarn.lock
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+
+# Docker (optional)
+.dockerignore
+docker-compose.override.yml
