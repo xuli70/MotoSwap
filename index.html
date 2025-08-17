@@ -329,30 +329,74 @@
     <!-- Configuration (Coolify injects variables here) -->
     <script src="config.js"></script>
     
-    <!-- Supabase Client (only if using fallback) -->
+    <!-- Supabase Client SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <!-- Main Application (ES6 modules) -->
     <script type="module" src="js/main.js"></script>
     
-    <!-- Initialization Script -->
+    <!-- Application Initialization -->
     <script>
         console.log('🚀 MotoSwap - Intercambio de Casas para Moteros');
         console.log('🔗 Conectando con Supabase...');
         
-        // Global error handling
+        // Check if MCP Supabase tools are available (should NOT be in client)
+        if (typeof mcp__supabase3_mcp__query !== 'undefined') {
+            console.warn('⚠️ MCP Supabase tools detectadas en cliente, esto es incorrecto');
+            console.warn('💡 MCP tools deben usarse SOLO desde backend/servidor');
+        }
+        
+        // Global error handling  
         window.addEventListener('error', function(e) {
             if (window.MotoSwapSecurity) {
                 console.warn('🛡️ Error capturado por seguridad:', e.message);
             }
         });
         
-        // Initialize when ready
-        document.addEventListener('DOMContentLoaded', function() {
-            if (window.initializeApp) {
-                window.initializeApp();
+        // Wait for configuration and main app to be ready
+        let initializationAttempts = 0;
+        const maxAttempts = 20;
+        
+        function tryInitialize() {
+            initializationAttempts++;
+            
+            // Check if configuration is ready
+            if (!window.APP_CONFIG && !window.env) {
+                if (initializationAttempts < maxAttempts) {
+                    setTimeout(tryInitialize, 250);
+                    return;
+                }
+                console.error('❌ Configuración no disponible después de múltiples intentos');
+                return;
             }
-        });
+            
+            // Check if Supabase SDK is loaded
+            if (!window.supabase) {
+                if (initializationAttempts < maxAttempts) {
+                    setTimeout(tryInitialize, 250);
+                    return;
+                }
+                console.error('❌ Supabase SDK no disponible');
+                return;
+            }
+            
+            // Initialize the app
+            console.log('✅ Configuración y dependencias listas, inicializando aplicación...');
+            
+            // The actual initialization happens in main.js through ES6 modules
+            // We don't need to call initializeApp() here anymore
+        }
+        
+        // Start initialization attempts
+        document.addEventListener('DOMContentLoaded', tryInitialize);
+        
+        // Fallback if DOMContentLoaded already fired
+        if (document.readyState === 'loading') {
+            // Document still loading, DOMContentLoaded will fire
+        } else {
+            // Document already loaded
+            setTimeout(tryInitialize, 100);
+        }
     </script>
 </body>
 </html>

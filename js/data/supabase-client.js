@@ -1,6 +1,6 @@
 /**
  * MotoSwap - Supabase Client Module
- * Cliente centralizado para conectar con Supabase usando MCP tools
+ * Cliente centralizado para conectar con Supabase usando el cliente JS oficial
  * Todas las operaciones de base de datos pasan por aquí
  */
 
@@ -8,26 +8,7 @@ class SupabaseClient {
     constructor() {
         this.initialized = false;
         this.config = null;
-        this.mcpAvailable = false;
-        
-        // Verificar disponibilidad de MCP tools
-        this.checkMCPAvailability();
-    }
-
-    /**
-     * Verificar si las herramientas MCP están disponibles
-     */
-    checkMCPAvailability() {
-        try {
-            if (typeof mcp__supabase3_mcp__query === 'function') {
-                this.mcpAvailable = true;
-                console.log('✅ MCP Supabase tools disponibles');
-            } else {
-                console.warn('⚠️ MCP Supabase tools no disponibles, usando fallback');
-            }
-        } catch (error) {
-            console.warn('⚠️ Error verificando MCP tools:', error.message);
-        }
+        this.client = null;
     }
 
     /**
@@ -47,17 +28,18 @@ class SupabaseClient {
                 throw new Error('SUPABASE_URL y SUPABASE_ANON_KEY son requeridos');
             }
 
-            // Si MCP no está disponible, usar cliente JS de Supabase
-            if (!this.mcpAvailable && window.supabase) {
-                this.fallbackClient = window.supabase.createClient(
+            // Crear cliente Supabase usando el SDK oficial
+            if (window.supabase) {
+                this.client = window.supabase.createClient(
                     this.config.SUPABASE_URL,
                     this.config.SUPABASE_ANON_KEY
                 );
-                console.log('🔄 Usando cliente Supabase JS como fallback');
+                console.log('✅ Supabase client inicializado');
+            } else {
+                throw new Error('Supabase SDK no encontrado. Incluir @supabase/supabase-js');
             }
 
             this.initialized = true;
-            console.log('✅ Supabase client inicializado');
             return true;
 
         } catch (error) {
@@ -67,55 +49,25 @@ class SupabaseClient {
     }
 
     /**
-     * Ejecutar query SQL usando MCP
+     * Verificar conexión
      */
-    async query(sql, params = [], limit = 100) {
-        if (!this.initialized) {
-            throw new Error('Cliente no inicializado. Llamar initialize() primero.');
+    async testConnection() {
+        if (!this.client) {
+            throw new Error('Cliente no inicializado');
         }
 
         try {
-            // Usar MCP si está disponible
-            if (this.mcpAvailable) {
-                const result = await mcp__supabase3_mcp__query({
-                    sql: sql,
-                    params: params,
-                    limit: limit
-                });
+            // Intentar una query simple para verificar conectividad
+            const { data, error } = await this.client
+                .from('users')
+                .select('count')
+                .limit(1);
 
-                // Normalizar respuesta
-                return {
-                    data: result.rows || [],
-                    count: result.rowCount || 0,
-                    error: null
-                };
-            }
-
-            // Fallback: no podemos ejecutar SQL arbitrario con cliente JS
-            throw new Error('SQL directo no soportado sin MCP tools');
-
+            if (error) throw error;
+            return true;
         } catch (error) {
-            console.error('❌ Error en query:', error.message);
-            return {
-                data: null,
-                count: 0,
-                error: error
-            };
-        }
-    }
-
-    /**
-     * Obtener información de tablas
-     */
-    async listTables(options = {}) {
-        try {
-            if (this.mcpAvailable) {
-                return await mcp__supabase3_mcp__list_tables(options);
-            }
-            throw new Error('listTables requiere MCP tools');
-        } catch (error) {
-            console.error('❌ Error listando tablas:', error.message);
-            return [];
+            console.error('❌ Error conectando con Supabase:', error.message);
+            return false;
         }
     }
 
@@ -125,340 +77,500 @@ class SupabaseClient {
      * Usuarios: Obtener todos los usuarios
      */
     async getUsers(limit = 50) {
-        const sql = `
-            SELECT u.*, m.marca, m.modelo, m.tipo as tipo_moto, m.cilindrada, m.licencia
-            FROM users u
-            LEFT JOIN motorcycles m ON u.id = m.user_id
-            WHERE u.estado = 'activo'
-            ORDER BY u.nombre
-            LIMIT $1
-        `;
-        return await this.query(sql, [limit]);
+        if (!this.client) throw new Error('Cliente no inicializado');
+
+        try {
+            const { data, error } = await this.client
+                .from('users')
+                .select(`
+                    *,
+                    motorcycles (
+                        marca,
+                        modelo,
+                        tipo,
+                        cilindrada,
+                        licencia
+                    )
+                `)
+                .eq('estado', 'activo')
+                .order('nombre')
+                .limit(limit);
+
+            if (error) throw error;
+
+            // Transformar datos para compatibilidad
+            return {
+                data: data.map(user => ({
+                    ...user,
+                    tipo_moto: user.motorcycles?.[0]?.tipo || 'Sin especificar',
+                    marca: user.motorcycles?.[0]?.marca || 'Sin especificar',
+                    modelo: user.motorcycles?.[0]?.modelo || 'Sin especificar',
+                    cilindrada: user.motorcycles?.[0]?.cilindrada || 'N/A',
+                    licencia: user.motorcycles?.[0]?.licencia || 'N/A'
+                })),
+                error: null
+            };
+        } catch (error) {
+            console.error('❌ Error obteniendo usuarios:', error.message);
+            return { data: [], error };
+        }
     }
 
     /**
      * Usuarios: Buscar por email
      */
     async getUserByEmail(email) {
-        const sql = `
-            SELECT u.*, m.marca, m.modelo, m.tipo as tipo_moto, m.cilindrada, m.licencia
-            FROM users u
-            LEFT JOIN motorcycles m ON u.id = m.user_id
-            WHERE u.email = $1 AND u.estado = 'activo'
-            LIMIT 1
-        `;
-        const result = await this.query(sql, [email]);
-        return result.data && result.data.length > 0 ? result.data[0] : null;
+        if (!this.client) throw new Error('Cliente no inicializado');
+
+        try {
+            const { data, error } = await this.client
+                .from('users')
+                .select(`
+                    *,
+                    motorcycles (
+                        marca,
+                        modelo,
+                        tipo,
+                        cilindrada,
+                        licencia
+                    )
+                `)
+                .eq('email', email)
+                .eq('estado', 'activo')
+                .single();
+
+            if (error) throw error;
+
+            // Transformar para compatibilidad
+            const user = {
+                ...data,
+                tipo_moto: data.motorcycles?.[0]?.tipo || 'Sin especificar',
+                marca: data.motorcycles?.[0]?.marca || 'Sin especificar',
+                modelo: data.motorcycles?.[0]?.modelo || 'Sin especificar',
+                cilindrada: data.motorcycles?.[0]?.cilindrada || 'N/A',
+                licencia: data.motorcycles?.[0]?.licencia || 'N/A'
+            };
+
+            return user;
+        } catch (error) {
+            console.error('❌ Error buscando usuario por email:', error.message);
+            return null;
+        }
     }
 
     /**
      * Alojamientos: Obtener todos con información del propietario
      */
     async getAccommodations(limit = 50) {
-        const sql = `
-            SELECT 
-                a.*,
-                u.nombre as propietario_nombre,
-                u.email as propietario_email,
-                u.valoracion_promedio,
-                u.total_intercambios,
-                m.marca as moto_marca,
-                m.modelo as moto_modelo,
-                m.tipo as moto_tipo
-            FROM accommodations a
-            JOIN users u ON a.user_id = u.id
-            LEFT JOIN motorcycles m ON u.id = m.user_id
-            WHERE a.disponible = true AND u.estado = 'activo'
-            ORDER BY a.created_at DESC
-            LIMIT $1
-        `;
-        return await this.query(sql, [limit]);
+        if (!this.client) throw new Error('Cliente no inicializado');
+
+        try {
+            const { data, error } = await this.client
+                .from('accommodations')
+                .select(`
+                    *,
+                    users!inner (
+                        id,
+                        nombre,
+                        email,
+                        valoracion_promedio,
+                        total_intercambios,
+                        motorcycles (
+                            marca,
+                            modelo,
+                            tipo
+                        )
+                    )
+                `)
+                .eq('disponible', true)
+                .eq('users.estado', 'activo')
+                .order('created_at', { ascending: false })
+                .limit(limit);
+
+            if (error) throw error;
+
+            // Transformar datos para compatibilidad
+            const accommodations = data.map(acc => ({
+                ...acc,
+                propietario_nombre: acc.users.nombre,
+                propietario_email: acc.users.email,
+                valoracion_promedio: acc.users.valoracion_promedio,
+                total_intercambios: acc.users.total_intercambios,
+                moto_marca: acc.users.motorcycles?.[0]?.marca || 'Sin especificar',
+                moto_modelo: acc.users.motorcycles?.[0]?.modelo || 'Sin especificar',
+                moto_tipo: acc.users.motorcycles?.[0]?.tipo || 'Sin especificar'
+            }));
+
+            return { data: accommodations, error: null };
+        } catch (error) {
+            console.error('❌ Error obteniendo alojamientos:', error.message);
+            return { data: [], error };
+        }
     }
 
     /**
      * Alojamientos: Obtener por ID con facilidades
      */
     async getAccommodationById(accommodationId) {
-        const sql = `
-            SELECT 
-                a.*,
-                u.nombre as propietario_nombre,
-                u.email as propietario_email,
-                u.valoracion_promedio,
-                u.total_intercambios,
-                m.marca as moto_marca,
-                m.modelo as moto_modelo,
-                m.tipo as moto_tipo
-            FROM accommodations a
-            JOIN users u ON a.user_id = u.id
-            LEFT JOIN motorcycles m ON u.id = m.user_id
-            WHERE a.id = $1
-            LIMIT 1
-        `;
-        const result = await this.query(sql, [accommodationId]);
-        
-        if (result.data && result.data.length > 0) {
-            const accommodation = result.data[0];
-            
+        if (!this.client) throw new Error('Cliente no inicializado');
+
+        try {
+            const { data, error } = await this.client
+                .from('accommodations')
+                .select(`
+                    *,
+                    users!inner (
+                        nombre,
+                        email,
+                        valoracion_promedio,
+                        total_intercambios,
+                        motorcycles (
+                            marca,
+                            modelo,
+                            tipo
+                        )
+                    )
+                `)
+                .eq('id', accommodationId)
+                .single();
+
+            if (error) throw error;
+
             // Obtener facilidades
             const facilities = await this.getAccommodationFacilities(accommodationId);
-            accommodation.facilidades = facilities.data || [];
-            
+
+            // Transformar datos
+            const accommodation = {
+                ...data,
+                propietario_nombre: data.users.nombre,
+                propietario_email: data.users.email,
+                valoracion_promedio: data.users.valoracion_promedio,
+                total_intercambios: data.users.total_intercambios,
+                moto_marca: data.users.motorcycles?.[0]?.marca || 'Sin especificar',
+                moto_modelo: data.users.motorcycles?.[0]?.modelo || 'Sin especificar',
+                moto_tipo: data.users.motorcycles?.[0]?.tipo || 'Sin especificar',
+                facilidades: facilities.data || []
+            };
+
             return accommodation;
+        } catch (error) {
+            console.error('❌ Error obteniendo alojamiento por ID:', error.message);
+            return null;
         }
-        
-        return null;
     }
 
     /**
      * Facilidades: Obtener por alojamiento
      */
     async getAccommodationFacilities(accommodationId) {
-        const sql = `
-            SELECT nombre, categoria, icono, descripcion
-            FROM accommodation_facilities
-            WHERE accommodation_id = $1
-            ORDER BY categoria, nombre
-        `;
-        return await this.query(sql, [accommodationId]);
+        if (!this.client) throw new Error('Cliente no inicializado');
+
+        try {
+            const { data, error } = await this.client
+                .from('accommodation_facilities')
+                .select('nombre, categoria, icono, descripcion')
+                .eq('accommodation_id', accommodationId)
+                .order('categoria')
+                .order('nombre');
+
+            if (error) throw error;
+            return { data, error: null };
+        } catch (error) {
+            console.error('❌ Error obteniendo facilidades:', error.message);
+            return { data: [], error };
+        }
     }
 
     /**
      * Compatibilidad: Obtener tipos compatibles con un tipo de moto
      */
     async getCompatibleBikeTypes(bikeType) {
-        const sql = `
-            SELECT DISTINCT tipo_compatible
-            FROM motorcycle_compatibility
-            WHERE tipo_origen = $1
-            ORDER BY tipo_compatible
-        `;
-        const result = await this.query(sql, [bikeType]);
-        return result.data ? result.data.map(row => row.tipo_compatible) : [];
+        if (!this.client) throw new Error('Cliente no inicializado');
+
+        try {
+            const { data, error } = await this.client
+                .from('motorcycle_compatibility')
+                .select('tipo_compatible')
+                .eq('tipo_origen', bikeType)
+                .order('tipo_compatible');
+
+            if (error) throw error;
+            return data.map(row => row.tipo_compatible);
+        } catch (error) {
+            console.error('❌ Error obteniendo compatibilidad:', error.message);
+            // Fallback básico con lógica hardcodeada
+            return this.getCompatibilityFallback(bikeType);
+        }
+    }
+
+    /**
+     * Fallback para compatibilidad de motos (lógica hardcodeada)
+     */
+    getCompatibilityFallback(bikeType) {
+        const compatibility = {
+            'Adventure/Trail': ['Adventure/Trail', 'Touring', 'Naked'],
+            'Touring': ['Touring', 'Adventure/Trail', 'Cruiser'],
+            'Deportiva': ['Deportiva', 'Naked'],
+            'Cruiser': ['Cruiser', 'Touring'],
+            'Naked': ['Naked', 'Deportiva', 'Adventure/Trail'],
+            'Scooter': ['Scooter', 'Naked']
+        };
+        
+        return compatibility[bikeType] || [bikeType];
     }
 
     /**
      * Alojamientos: Obtener compatibles con tipo de moto
      */
     async getCompatibleAccommodations(userBikeType, limit = 20) {
-        const sql = `
-            SELECT DISTINCT
-                a.*,
-                u.nombre as propietario_nombre,
-                u.valoracion_promedio,
-                m.marca as moto_marca,
-                m.modelo as moto_modelo,
-                m.tipo as moto_tipo
-            FROM accommodations a
-            JOIN users u ON a.user_id = u.id
-            LEFT JOIN motorcycles m ON u.id = m.user_id
-            JOIN motorcycle_compatibility mc ON m.tipo = mc.tipo_compatible
-            WHERE mc.tipo_origen = $1 
-                AND a.disponible = true 
-                AND u.estado = 'activo'
-            ORDER BY u.valoracion_promedio DESC, a.puntos_por_noche ASC
-            LIMIT $2
-        `;
-        return await this.query(sql, [userBikeType, limit]);
+        // Primero obtener tipos compatibles
+        const compatibleTypes = await this.getCompatibleBikeTypes(userBikeType);
+        
+        if (!this.client) throw new Error('Cliente no inicializado');
+
+        try {
+            const { data, error } = await this.client
+                .from('accommodations')
+                .select(`
+                    *,
+                    users!inner (
+                        nombre,
+                        valoracion_promedio,
+                        motorcycles!inner (
+                            marca,
+                            modelo,
+                            tipo
+                        )
+                    )
+                `)
+                .eq('disponible', true)
+                .eq('users.estado', 'activo')
+                .in('users.motorcycles.tipo', compatibleTypes)
+                .order('users.valoracion_promedio', { ascending: false })
+                .order('puntos_por_noche', { ascending: true })
+                .limit(limit);
+
+            if (error) throw error;
+
+            // Transformar datos
+            const accommodations = data.map(acc => ({
+                ...acc,
+                propietario_nombre: acc.users.nombre,
+                valoracion_promedio: acc.users.valoracion_promedio,
+                moto_marca: acc.users.motorcycles?.[0]?.marca || 'Sin especificar',
+                moto_modelo: acc.users.motorcycles?.[0]?.modelo || 'Sin especificar',
+                moto_tipo: acc.users.motorcycles?.[0]?.tipo || 'Sin especificar'
+            }));
+
+            return { data: accommodations, error: null };
+        } catch (error) {
+            console.error('❌ Error obteniendo alojamientos compatibles:', error.message);
+            return { data: [], error };
+        }
     }
 
     /**
      * Mensajes: Obtener conversación entre dos usuarios
      */
     async getMessages(userId1, userId2, limit = 50) {
-        const sql = `
-            SELECT 
-                m.*,
-                u1.nombre as remitente_nombre,
-                u2.nombre as destinatario_nombre
-            FROM messages m
-            JOIN users u1 ON m.remitente_id = u1.id
-            JOIN users u2 ON m.destinatario_id = u2.id
-            WHERE (m.remitente_id = $1 AND m.destinatario_id = $2)
-               OR (m.remitente_id = $2 AND m.destinatario_id = $1)
-            ORDER BY m.created_at ASC
-            LIMIT $3
-        `;
-        return await this.query(sql, [userId1, userId2, limit]);
+        if (!this.client) throw new Error('Cliente no inicializado');
+
+        try {
+            const { data, error } = await this.client
+                .from('messages')
+                .select(`
+                    *,
+                    sender:users!messages_remitente_id_fkey(nombre),
+                    recipient:users!messages_destinatario_id_fkey(nombre)
+                `)
+                .or(`and(remitente_id.eq.${userId1},destinatario_id.eq.${userId2}),and(remitente_id.eq.${userId2},destinatario_id.eq.${userId1})`)
+                .order('created_at', { ascending: true })
+                .limit(limit);
+
+            if (error) throw error;
+
+            // Transformar datos
+            const messages = data.map(msg => ({
+                ...msg,
+                remitente_nombre: msg.sender?.nombre || 'Desconocido',
+                destinatario_nombre: msg.recipient?.nombre || 'Desconocido'
+            }));
+
+            return { data: messages, error: null };
+        } catch (error) {
+            console.error('❌ Error obteniendo mensajes:', error.message);
+            return { data: [], error };
+        }
     }
 
     /**
      * Mensajes: Enviar nuevo mensaje
      */
     async sendMessage(remitenteId, destinatarioId, contenido, tipo = 'mensaje') {
-        const sql = `
-            INSERT INTO messages (remitente_id, destinatario_id, contenido, tipo)
-            VALUES ($1, $2, $3, $4)
-            RETURNING *
-        `;
-        return await this.query(sql, [remitenteId, destinatarioId, contenido, tipo]);
-    }
+        if (!this.client) throw new Error('Cliente no inicializado');
 
-    /**
-     * Intercambios: Obtener por usuario
-     */
-    async getExchangesByUser(userId, limit = 20) {
-        const sql = `
-            SELECT 
-                e.*,
-                u1.nombre as solicitante_nombre,
-                u2.nombre as anfitrion_nombre,
-                a.titulo as alojamiento_titulo
-            FROM exchanges e
-            JOIN users u1 ON e.solicitante_id = u1.id
-            JOIN users u2 ON e.anfitrion_id = u2.id
-            JOIN accommodations a ON e.accommodation_id = a.id
-            WHERE e.solicitante_id = $1 OR e.anfitrion_id = $1
-            ORDER BY e.created_at DESC
-            LIMIT $2
-        `;
-        return await this.query(sql, [userId, limit]);
-    }
+        try {
+            const { data, error } = await this.client
+                .from('messages')
+                .insert([{
+                    remitente_id: remitenteId,
+                    destinatario_id: destinatarioId,
+                    contenido: contenido,
+                    tipo: tipo
+                }])
+                .select()
+                .single();
 
-    /**
-     * Reviews: Obtener por usuario
-     */
-    async getReviewsByUser(userId, limit = 20) {
-        const sql = `
-            SELECT 
-                r.*,
-                u1.nombre as revisor_nombre,
-                u2.nombre as valorado_nombre
-            FROM reviews r
-            JOIN users u1 ON r.revisor_id = u1.id
-            JOIN users u2 ON r.valorado_id = u2.id
-            WHERE r.valorado_id = $1
-            ORDER BY r.created_at DESC
-            LIMIT $2
-        `;
-        return await this.query(sql, [userId, limit]);
+            if (error) throw error;
+            return { data, error: null };
+        } catch (error) {
+            console.error('❌ Error enviando mensaje:', error.message);
+            return { data: null, error };
+        }
     }
 
     /**
      * Estadísticas: Obtener resumen general
      */
     async getStats() {
-        const sql = `
-            SELECT 
-                (SELECT COUNT(*) FROM users WHERE estado = 'activo') as total_usuarios,
-                (SELECT COUNT(*) FROM accommodations WHERE disponible = true) as total_alojamientos,
-                (SELECT COUNT(*) FROM exchanges) as total_intercambios,
-                (SELECT COUNT(*) FROM messages) as total_mensajes,
-                (SELECT COUNT(*) FROM reviews) as total_reviews,
-                (SELECT AVG(valoracion_promedio) FROM users WHERE estado = 'activo') as valoracion_promedio
-        `;
-        const result = await this.query(sql);
-        return result.data && result.data.length > 0 ? result.data[0] : null;
+        if (!this.client) throw new Error('Cliente no inicializado');
+
+        try {
+            // Obtener estadísticas usando múltiples queries
+            const [usersResult, accommodationsResult, exchangesResult, messagesResult, reviewsResult] = await Promise.all([
+                this.client.from('users').select('*', { count: 'exact', head: true }).eq('estado', 'activo'),
+                this.client.from('accommodations').select('*', { count: 'exact', head: true }).eq('disponible', true),
+                this.client.from('exchanges').select('*', { count: 'exact', head: true }),
+                this.client.from('messages').select('*', { count: 'exact', head: true }),
+                this.client.from('reviews').select('*', { count: 'exact', head: true })
+            ]);
+
+            // Calcular promedio de valoraciones
+            const { data: avgData } = await this.client
+                .from('users')
+                .select('valoracion_promedio')
+                .eq('estado', 'activo')
+                .not('valoracion_promedio', 'is', null);
+
+            const avgRating = avgData.length > 0 
+                ? avgData.reduce((sum, user) => sum + user.valoracion_promedio, 0) / avgData.length 
+                : 0;
+
+            const stats = {
+                total_usuarios: usersResult.count || 0,
+                total_alojamientos: accommodationsResult.count || 0,
+                total_intercambios: exchangesResult.count || 0,
+                total_mensajes: messagesResult.count || 0,
+                total_reviews: reviewsResult.count || 0,
+                valoracion_promedio: avgRating
+            };
+
+            return stats;
+        } catch (error) {
+            console.error('❌ Error obteniendo estadísticas:', error.message);
+            return null;
+        }
     }
 
     /**
      * Búsqueda: Buscar alojamientos por criterios
      */
     async searchAccommodations(filters = {}) {
-        let sql = `
-            SELECT 
-                a.*,
-                u.nombre as propietario_nombre,
-                u.valoracion_promedio,
-                m.marca as moto_marca,
-                m.modelo as moto_modelo,
-                m.tipo as moto_tipo
-            FROM accommodations a
-            JOIN users u ON a.user_id = u.id
-            LEFT JOIN motorcycles m ON u.id = m.user_id
-            WHERE a.disponible = true AND u.estado = 'activo'
-        `;
-        
-        const params = [];
-        let paramCount = 0;
-        
-        // Filtros dinámicos
-        if (filters.ciudad) {
-            paramCount++;
-            sql += ` AND LOWER(a.ciudad) LIKE LOWER($${paramCount})`;
-            params.push(`%${filters.ciudad}%`);
+        if (!this.client) throw new Error('Cliente no inicializado');
+
+        try {
+            let query = this.client
+                .from('accommodations')
+                .select(`
+                    *,
+                    users!inner (
+                        nombre,
+                        valoracion_promedio,
+                        motorcycles (
+                            marca,
+                            modelo,
+                            tipo
+                        )
+                    )
+                `)
+                .eq('disponible', true)
+                .eq('users.estado', 'activo');
+
+            // Aplicar filtros dinámicamente
+            if (filters.ciudad) {
+                query = query.ilike('ciudad', `%${filters.ciudad}%`);
+            }
+            
+            if (filters.pais) {
+                query = query.ilike('pais', `%${filters.pais}%`);
+            }
+            
+            if (filters.maxPuntos) {
+                query = query.lte('puntos_por_noche', filters.maxPuntos);
+            }
+            
+            if (filters.tipoAlojamiento) {
+                query = query.ilike('tipo', `%${filters.tipoAlojamiento}%`);
+            }
+
+            const { data, error } = await query
+                .order('users.valoracion_promedio', { ascending: false })
+                .order('puntos_por_noche', { ascending: true })
+                .limit(filters.limit || 20);
+
+            if (error) throw error;
+
+            // Transformar datos
+            const accommodations = data.map(acc => ({
+                ...acc,
+                propietario_nombre: acc.users.nombre,
+                valoracion_promedio: acc.users.valoracion_promedio,
+                moto_marca: acc.users.motorcycles?.[0]?.marca || 'Sin especificar',
+                moto_modelo: acc.users.motorcycles?.[0]?.modelo || 'Sin especificar',
+                moto_tipo: acc.users.motorcycles?.[0]?.tipo || 'Sin especificar'
+            }));
+
+            return { data: accommodations, error: null };
+        } catch (error) {
+            console.error('❌ Error en búsqueda:', error.message);
+            return { data: [], error };
         }
-        
-        if (filters.pais) {
-            paramCount++;
-            sql += ` AND LOWER(a.pais) LIKE LOWER($${paramCount})`;
-            params.push(`%${filters.pais}%`);
-        }
-        
-        if (filters.maxPuntos) {
-            paramCount++;
-            sql += ` AND a.puntos_por_noche <= $${paramCount}`;
-            params.push(filters.maxPuntos);
-        }
-        
-        if (filters.tipoAlojamiento) {
-            paramCount++;
-            sql += ` AND LOWER(a.tipo) LIKE LOWER($${paramCount})`;
-            params.push(`%${filters.tipoAlojamiento}%`);
-        }
-        
-        sql += ` ORDER BY u.valoracion_promedio DESC, a.puntos_por_noche ASC`;
-        sql += ` LIMIT ${filters.limit || 20}`;
-        
-        return await this.query(sql, params);
     }
 }
 
-// Crear instancia global
-window.supabaseClient = new SupabaseClient();
-
-// Auto-inicialización cuando la configuración esté disponible
-if (typeof window !== 'undefined') {
-    // Esperar a que la configuración esté lista
-    const initWhenReady = () => {
-        if (window.APP_CONFIG || window.env) {
-            window.supabaseClient.initialize()
-                .then(success => {
-                    if (success) {
-                        console.log('🗄️ Supabase client auto-inicializado');
-                    }
-                })
-                .catch(error => {
-                    console.warn('⚠️ Auto-inicialización falló:', error.message);
-                });
-        } else {
-            // Reintentar en 1 segundo
-            setTimeout(initWhenReady, 1000);
-        }
-    };
-    
-    // Iniciar verificación
-    setTimeout(initWhenReady, 100);
-}
+// No crear instancia global automáticamente para evitar conflictos
+// La instancia se creará en data-service.js
 
 // Exportar para uso en módulos
 export { SupabaseClient };
-export default window.supabaseClient;
 
 /**
  * INSTRUCCIONES DE USO:
  * 
  * 1. IMPORTAR EN MÓDULOS:
- *    import supabaseClient from '../data/supabase-client.js';
+ *    import { SupabaseClient } from './supabase-client.js';
+ *    const client = new SupabaseClient();
+ *    await client.initialize();
  * 
- * 2. USAR EN SCRIPTS:
- *    const users = await window.supabaseClient.getUsers();
- *    const accommodations = await window.supabaseClient.getAccommodations();
+ * 2. VERIFICAR CONEXIÓN:
+ *    const connected = await client.testConnection();
  * 
- * 3. BÚSQUEDAS:
- *    const results = await window.supabaseClient.searchAccommodations({
+ * 3. OPERACIONES CRUD:
+ *    const users = await client.getUsers();
+ *    const accommodations = await client.getAccommodations();
+ *    const stats = await client.getStats();
+ * 
+ * 4. BÚSQUEDAS:
+ *    const results = await client.searchAccommodations({
  *        ciudad: 'Madrid',
  *        maxPuntos: 150
  *    });
  * 
- * 4. MENSAJERÍA:
- *    await window.supabaseClient.sendMessage(userId1, userId2, 'Hola!');
- *    const messages = await window.supabaseClient.getMessages(userId1, userId2);
+ * 5. MENSAJERÍA:
+ *    await client.sendMessage(userId1, userId2, 'Hola!');
+ *    const messages = await client.getMessages(userId1, userId2);
  * 
- * 5. COMPATIBILIDAD:
- *    const compatible = await window.supabaseClient.getCompatibleBikeTypes('Adventure/Trail');
- *    const accommodations = await window.supabaseClient.getCompatibleAccommodations('Naked');
- * 
- * 6. ESTADÍSTICAS:
- *    const stats = await window.supabaseClient.getStats();
+ * 6. COMPATIBILIDAD:
+ *    const compatible = await client.getCompatibleBikeTypes('Adventure/Trail');
+ *    const accommodations = await client.getCompatibleAccommodations('Naked');
  */

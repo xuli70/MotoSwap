@@ -17,7 +17,9 @@
       "mcp__filesystem__directory_tree",
       "mcp__supabase3-mcp__list-tables",
       "mcp__supabase3-mcp__query",
-      "Bash(del \"C:\\Users\\Sebastian\\000\\MotoSwap\\js\\data\\users-data.js\")"
+      "Bash(del \"C:\\Users\\Sebastian\\000\\MotoSwap\\js\\data\\users-data.js\")",
+      "Bash(start C:UsersSebastian000MotoSwapindex.html)",
+      "Bash(start C:UsersSebastian000MotoSwaptest-supabase-fixed.html)"
     ]
   },
   "enableAllProjectMcpServers": true,

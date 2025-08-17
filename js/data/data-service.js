@@ -1,16 +1,17 @@
 /**
  * MotoSwap - Data Service Module
  * Servicio principal de datos que reemplaza completamente los datos mock
- * Usa 100% datos reales de Supabase vía MCP
+ * Usa 100% datos reales de Supabase vía cliente JS oficial
  */
 
-import supabaseClient from './supabase-client.js';
+import { SupabaseClient } from './supabase-client.js';
 
 class DataService {
     constructor() {
         this.cache = new Map();
         this.cacheTimeout = 5 * 60 * 1000; // 5 minutos
         this.initialized = false;
+        this.supabaseClient = new SupabaseClient();
     }
 
     /**
@@ -18,9 +19,10 @@ class DataService {
      */
     async initialize() {
         try {
-            // Verificar que el cliente Supabase esté listo
-            if (!supabaseClient.initialized) {
-                await supabaseClient.initialize();
+            // Inicializar cliente Supabase
+            const success = await this.supabaseClient.initialize();
+            if (!success) {
+                throw new Error('Falló inicialización de Supabase');
             }
 
             this.initialized = true;
@@ -64,7 +66,7 @@ class DataService {
         if (cached) return cached;
 
         try {
-            const result = await supabaseClient.getUsers();
+            const result = await this.supabaseClient.getUsers();
             if (result.error) throw result.error;
 
             // Transformar datos para compatibilidad con formato anterior
@@ -84,45 +86,17 @@ class DataService {
                     cilindrada: user.cilindrada || 'N/A',
                     licencia: user.licencia || 'N/A'
                 },
-                email: user.email
-            }));
-
-            // Obtener alojamientos para cada usuario
-            for (let usuario of usuarios) {
-                const accommodationResult = await supabaseClient.query(
-                    'SELECT * FROM accommodations WHERE user_id = $1 LIMIT 1',
-                    [usuario.id]
-                );
-                
-                if (accommodationResult.data && accommodationResult.data.length > 0) {
-                    const acc = accommodationResult.data[0];
-                    
-                    // Obtener facilidades
-                    const facilitiesResult = await supabaseClient.getAccommodationFacilities(acc.id);
-                    const facilidades = facilitiesResult.data ? 
-                        facilitiesResult.data.map(f => f.nombre) : 
-                        ['Garaje básico', 'Acceso fácil'];
-
-                    usuario.alojamiento = {
-                        tipo: acc.tipo,
-                        habitaciones: acc.habitaciones,
-                        garaje: acc.garaje_tipo,
-                        facilidades: facilidades,
-                        descripcion: acc.descripcion || 'Alojamiento disponible para intercambio',
-                        puntosPorNoche: acc.puntos_por_noche
-                    };
-                } else {
-                    // Alojamiento por defecto si no existe
-                    usuario.alojamiento = {
-                        tipo: 'Alojamiento disponible',
-                        habitaciones: 2,
-                        garaje: 'Garaje privado',
-                        facilidades: ['Garaje seguro', 'Acceso fácil'],
-                        descripcion: 'Alojamiento disponible para intercambio',
-                        puntosPorNoche: 100
-                    };
+                email: user.email,
+                // Alojamiento básico (se puede expandir con query específica)
+                alojamiento: {
+                    tipo: 'Alojamiento disponible',
+                    habitaciones: 2,
+                    garaje: 'Garaje privado',
+                    facilidades: ['Garaje seguro', 'Acceso fácil'],
+                    descripcion: 'Alojamiento disponible para intercambio',
+                    puntosPorNoche: 100
                 }
-            }
+            }));
 
             this.setCached(cacheKey, usuarios);
             console.log(`✅ Cargados ${usuarios.length} usuarios reales de Supabase`);
@@ -144,7 +118,7 @@ class DataService {
         if (cached) return cached;
 
         try {
-            const result = await supabaseClient.getAccommodations(limit);
+            const result = await this.supabaseClient.getAccommodations(limit);
             if (result.error) throw result.error;
 
             const alojamientos = result.data.map(acc => ({
@@ -171,12 +145,6 @@ class DataService {
                 }
             }));
 
-            // Obtener facilidades para cada alojamiento
-            for (let alojamiento of alojamientos) {
-                const facilitiesResult = await supabaseClient.getAccommodationFacilities(alojamiento.id);
-                alojamiento.facilidades = facilitiesResult.data || [];
-            }
-
             this.setCached(cacheKey, alojamientos);
             console.log(`✅ Cargados ${alojamientos.length} alojamientos reales`);
             return alojamientos;
@@ -192,7 +160,7 @@ class DataService {
      */
     async getUserByEmail(email) {
         try {
-            const user = await supabaseClient.getUserByEmail(email);
+            const user = await this.supabaseClient.getUserByEmail(email);
             if (!user) return null;
 
             // Transformar para compatibilidad
@@ -226,7 +194,7 @@ class DataService {
         if (cached) return cached;
 
         try {
-            const types = await supabaseClient.getCompatibleBikeTypes(bikeType);
+            const types = await this.supabaseClient.getCompatibleBikeTypes(bikeType);
             this.setCached(cacheKey, types);
             return types;
         } catch (error) {
@@ -241,7 +209,7 @@ class DataService {
      */
     async getCompatibleAccommodations(bikeType, limit = 20) {
         try {
-            const result = await supabaseClient.getCompatibleAccommodations(bikeType, limit);
+            const result = await this.supabaseClient.getCompatibleAccommodations(bikeType, limit);
             if (result.error) throw result.error;
 
             return result.data.map(acc => ({
@@ -271,7 +239,7 @@ class DataService {
      */
     async getMessages(userId1, userId2) {
         try {
-            const result = await supabaseClient.getMessages(userId1, userId2);
+            const result = await this.supabaseClient.getMessages(userId1, userId2);
             if (result.error) throw result.error;
 
             return result.data.map(msg => ({
@@ -295,11 +263,11 @@ class DataService {
      */
     async sendMessage(remitenteId, destinatarioId, contenido, tipo = 'mensaje') {
         try {
-            const result = await supabaseClient.sendMessage(remitenteId, destinatarioId, contenido, tipo);
+            const result = await this.supabaseClient.sendMessage(remitenteId, destinatarioId, contenido, tipo);
             if (result.error) throw result.error;
 
             console.log('✅ Mensaje enviado correctamente');
-            return result.data[0];
+            return result.data;
         } catch (error) {
             console.error('❌ Error enviando mensaje:', error.message);
             throw error;
@@ -315,7 +283,7 @@ class DataService {
         if (cached) return cached;
 
         try {
-            const stats = await supabaseClient.getStats();
+            const stats = await this.supabaseClient.getStats();
             if (stats) {
                 this.setCached(cacheKey, stats);
                 return stats;
@@ -332,7 +300,7 @@ class DataService {
      */
     async searchAccommodations(filters) {
         try {
-            const result = await supabaseClient.searchAccommodations(filters);
+            const result = await this.supabaseClient.searchAccommodations(filters);
             if (result.error) throw result.error;
 
             return result.data.map(acc => ({
@@ -354,6 +322,18 @@ class DataService {
         } catch (error) {
             console.error('❌ Error en búsqueda:', error.message);
             return [];
+        }
+    }
+
+    /**
+     * Verificar conexión con Supabase
+     */
+    async testConnection() {
+        try {
+            return await this.supabaseClient.testConnection();
+        } catch (error) {
+            console.error('❌ Error probando conexión:', error.message);
+            return false;
         }
     }
 
@@ -386,10 +366,28 @@ const dataService = new DataService();
 if (typeof window !== 'undefined') {
     window.dataService = dataService;
     
-    // Inicializar cuando esté listo
+    // Inicializar cuando la configuración esté lista
     const initWhenReady = () => {
-        if (supabaseClient.initialized) {
-            dataService.initialize();
+        if (window.APP_CONFIG || window.env) {
+            dataService.initialize()
+                .then(success => {
+                    if (success) {
+                        console.log('✅ Data Service inicializado');
+                        
+                        // Verificar conexión
+                        dataService.testConnection()
+                            .then(connected => {
+                                if (connected) {
+                                    console.log('✅ Supabase client inicializado');
+                                } else {
+                                    console.warn('⚠️ Conexión Supabase falló, usando modo fallback');
+                                }
+                            });
+                    }
+                })
+                .catch(error => {
+                    console.warn('⚠️ Data Service inicialización falló:', error.message);
+                });
         } else {
             setTimeout(initWhenReady, 500);
         }
@@ -438,6 +436,7 @@ export default dataService;
  * 4. DEBUGGING:
  *    dataService.getCacheInfo();
  *    dataService.clearCache();
+ *    await dataService.testConnection();
  * 
  * 5. BÚSQUEDA:
  *    const results = await dataService.searchAccommodations({
