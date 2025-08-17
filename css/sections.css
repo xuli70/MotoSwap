@@ -1,0 +1,487 @@
+/* MotoSwap - Section Specific Styles */
+
+/* Hero Section */
+.hero {
+  background: var(--color-bg-1);
+  padding: var(--space-32) 0;
+  min-height: 600px;
+  display: flex;
+  align-items: center;
+}
+
+.hero__content {
+  max-width: 600px;
+  margin-bottom: var(--space-32);
+}
+
+.hero__title {
+  font-size: var(--font-size-4xl);
+  margin-bottom: var(--space-16);
+  line-height: var(--line-height-tight);
+}
+
+.hero__subtitle {
+  font-size: var(--font-size-lg);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-32);
+  line-height: var(--line-height-normal);
+}
+
+.hero__actions {
+  display: flex;
+  gap: var(--space-16);
+  margin-bottom: var(--space-32);
+}
+
+.hero__features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--space-24);
+}
+
+.feature-card {
+  background: var(--color-surface);
+  padding: var(--space-24);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--duration-normal) var(--ease-standard);
+  cursor: pointer;
+}
+
+.feature-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.feature-card__icon {
+  font-size: 48px;
+  margin-bottom: var(--space-16);
+  display: block;
+}
+
+.feature-card h3 {
+  margin-bottom: var(--space-12);
+  font-size: var(--font-size-lg);
+}
+
+.feature-card p {
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+/* Dashboard Section */
+.dashboard {
+  margin-top: 80px;
+  padding: var(--space-32) 0;
+}
+
+.dashboard.hidden {
+  display: none;
+}
+
+.dashboard__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-24);
+}
+
+.dashboard__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-20);
+  margin-bottom: var(--space-32);
+}
+
+.stat-card {
+  background: var(--color-surface);
+  padding: var(--space-20);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  text-align: center;
+}
+
+.stat-card__number {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+  display: block;
+}
+
+.stat-card__label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-top: var(--space-4);
+}
+
+.dashboard__filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-16);
+  margin-bottom: var(--space-32);
+  padding: var(--space-20);
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Listings */
+.listings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: var(--space-24);
+}
+
+.listing-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+  transition: all var(--duration-normal) var(--ease-standard);
+  cursor: pointer;
+}
+
+.listing-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.listing-image {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  background: var(--color-bg-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 64px;
+  color: var(--color-text-secondary);
+}
+
+.listing-content {
+  padding: var(--space-20);
+}
+
+.listing-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  margin-bottom: var(--space-12);
+}
+
+.listing-owner h3 {
+  margin: 0;
+  font-size: var(--font-size-base);
+}
+
+.listing-owner p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.listing-title {
+  font-size: var(--font-size-lg);
+  margin-bottom: var(--space-8);
+}
+
+.listing-location {
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-16);
+  font-size: var(--font-size-sm);
+}
+
+.bike-compatibility {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+  margin-bottom: var(--space-16);
+}
+
+.listing-facilities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+  margin-bottom: var(--space-16);
+}
+
+.listing-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.listing-rating {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+}
+
+.listing-points {
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+}
+
+/* Profile Section */
+.profile {
+  margin-top: 80px;
+  padding: var(--space-32) 0;
+}
+
+.profile.hidden {
+  display: none;
+}
+
+.profile__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-32);
+  padding: var(--space-32);
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+}
+
+.profile__info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-24);
+}
+
+.profile__avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 4px solid var(--color-border);
+  background: var(--color-primary);
+  color: var(--color-btn-primary-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-4xl);
+  font-weight: var(--font-weight-bold);
+}
+
+.profile__details h1 {
+  margin-bottom: var(--space-8);
+}
+
+.profile__details p {
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.profile__badges {
+  display: flex;
+  gap: var(--space-8);
+  margin-top: var(--space-12);
+}
+
+.profile__content {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: var(--space-32);
+}
+
+.profile__sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-24);
+}
+
+.profile__main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-24);
+}
+
+.moto-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  padding: var(--space-24);
+}
+
+.moto-card__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-16);
+  margin-bottom: var(--space-16);
+}
+
+.moto-card__icon {
+  font-size: 48px;
+}
+
+.moto-card__specs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+  margin-top: var(--space-16);
+}
+
+.facilities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+}
+
+.facility {
+  background: var(--color-bg-1);
+  color: var(--color-primary);
+  padding: var(--space-6) var(--space-12);
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+/* Messages Section */
+.messages {
+  margin-top: 80px;
+  height: calc(100vh - 80px);
+  overflow: hidden;
+}
+
+.messages.hidden {
+  display: none;
+}
+
+.messages-layout {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  height: 100%;
+}
+
+.chat-sidebar {
+  border-right: 1px solid var(--color-border);
+  background: var(--color-surface);
+  overflow-y: auto;
+}
+
+.chat-list {
+  padding: 0;
+}
+
+.chat-main {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.chat-header {
+  padding: var(--space-16) var(--space-24);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.chat-header h3 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-16) var(--space-24);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+}
+
+.chat-input-area {
+  padding: var(--space-16) var(--space-24);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+  display: flex;
+  gap: var(--space-12);
+  align-items: flex-end;
+}
+
+.chat-input-area textarea {
+  flex: 1;
+  resize: none;
+  min-height: 40px;
+  max-height: 120px;
+  border-radius: var(--radius-base);
+}
+
+/* Property Details Modal */
+.property-modal .modal__content {
+  max-width: 800px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.property-modal__content h2 {
+  margin-bottom: var(--space-16);
+}
+
+.property-owner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  margin-bottom: var(--space-24);
+  padding: var(--space-16);
+  background: var(--color-secondary);
+  border-radius: var(--radius-base);
+}
+
+.property-owner h3 {
+  margin: 0;
+  font-size: var(--font-size-base);
+}
+
+.property-owner p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.property-location {
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-24);
+  font-size: var(--font-size-lg);
+}
+
+.property-details {
+  margin-bottom: var(--space-24);
+}
+
+.property-facilities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+  margin-bottom: var(--space-24);
+}
+
+.property-compatibility {
+  margin-bottom: var(--space-24);
+}
+
+.property-compatibility h3 {
+  margin-bottom: var(--space-12);
+  font-size: var(--font-size-lg);
+}
+
+.compatibility-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+}
+
+.property-actions {
+  display: flex;
+  gap: var(--space-16);
+  justify-content: flex-end;
+  margin-top: var(--space-24);
+}

@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MotoSwap - Intercambio de Casas para Moteros</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Header/Navigation -->
+    <header class="header" id="header">
+        <nav class="nav">
+            <div class="nav__brand">
+                <div class="nav__logo">🏍️</div>
+                <span class="nav__title">MotoSwap</span>
+            </div>
+            <div class="nav__menu" id="nav-menu">
+                <ul class="nav__list">
+                    <li class="nav__item"><a href="#home" class="nav__link active">Inicio</a></li>
+                    <li class="nav__item"><a href="#dashboard" class="nav__link">Dashboard</a></li>
+                    <li class="nav__item"><a href="#profile" class="nav__link">Mi Perfil</a></li>
+                    <li class="nav__item"><a href="#messages" class="nav__link">Mensajes</a></li>
+                </ul>
+            </div>
+            <div class="nav__actions">
+                <div class="nav__user" id="user-info" style="display: none;">
+                    <span class="nav__points">150 pts</span>
+                    <span class="nav__avatar">👤</span>
+                </div>
+                <button class="btn btn--primary" id="login-btn">Iniciar Sesión</button>
+            </div>
+            <button class="nav__toggle" id="nav-toggle">☰</button>
+        </nav>
+    </header>
+
+    <!-- Landing Page -->
+    <section class="landing" id="home">
+        <div class="hero">
+            <div class="container">
+                <div class="hero__content">
+                    <h1 class="hero__title">Intercambia tu Casa con Moteros del Mundo</h1>
+                    <p class="hero__subtitle">La primera plataforma especializada en intercambio de alojamiento entre motociclistas. Encuentra hospedaje seguro compatible con tu tipo de moto.</p>
+                    <div class="hero__actions">
+                        <button class="btn btn--primary btn--lg" id="register-btn">Unirme Ahora</button>
+                        <button class="btn btn--outline btn--lg" id="learn-more">Saber Más</button>
+                    </div>
+                </div>
+                <div class="hero__features">
+                    <div class="feature-card">
+                        <div class="feature-card__icon">🔒</div>
+                        <h3>Parking Seguro</h3>
+                        <p>Garajes cubiertos con anclajes y cámaras</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-card__icon">🤝</div>
+                        <h3>Matching Inteligente</h3>
+                        <p>Te conectamos con moteros compatibles</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-card__icon">🛠️</div>
+                        <h3>Facilidades Técnicas</h3>
+                        <p>Herramientas y servicios especializados</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Registration Modal -->
+    <div class="modal hidden" id="register-modal">
+        <div class="modal__overlay">
+            <div class="modal__content">
+                <div class="modal__header">
+                    <h2>Únete a MotoSwap</h2>
+                    <button class="modal__close" id="close-register">&times;</button>
+                </div>
+                <div class="modal__body">
+                    <form class="register-form" id="register-form">
+                        <div class="form-group">
+                            <label class="form-label">Nombre Completo</label>
+                            <input type="text" class="form-control" name="nombre" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" name="email" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Edad</label>
+                            <input type="number" class="form-control" name="edad" min="16" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Experiencia (años)</label>
+                            <input type="number" class="form-control" name="experiencia" min="0" required>
+                        </div>
+                        
+                        <h3>Información de tu Moto</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Marca</label>
+                                <select class="form-control" name="marca" required>
+                                    <option value="">Seleccionar</option>
+                                    <option value="BMW">BMW</option>
+                                    <option value="Ducati">Ducati</option>
+                                    <option value="Harley Davidson">Harley Davidson</option>
+                                    <option value="Yamaha">Yamaha</option>
+                                    <option value="Honda">Honda</option>
+                                    <option value="Kawasaki">Kawasaki</option>
+                                    <option value="Indian">Indian</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Modelo</label>
+                                <input type="text" class="form-control" name="modelo" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Tipo de Moto</label>
+                                <select class="form-control" name="tipo" required>
+                                    <option value="">Seleccionar</option>
+                                    <option value="Touring">Touring</option>
+                                    <option value="Deportiva">Deportiva</option>
+                                    <option value="Cruiser">Cruiser</option>
+                                    <option value="Adventure">Adventure/Trail</option>
+                                    <option value="Naked">Naked</option>
+                                    <option value="Scooter">Scooter/Urbana</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Licencia</label>
+                                <select class="form-control" name="licencia" required>
+                                    <option value="">Seleccionar</option>
+                                    <option value="A1">A1 (125cc, hasta 11kW)</option>
+                                    <option value="A2">A2 (hasta 35kW)</option>
+                                    <option value="A">A (sin restricción)</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Cilindrada</label>
+                            <input type="text" class="form-control" name="cilindrada" placeholder="ej: 1200cc" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Ubicación</label>
+                            <input type="text" class="form-control" name="ubicacion" placeholder="Ciudad, País" required>
+                        </div>
+                        
+                        <button type="submit" class="btn btn--primary btn--full-width">Crear Cuenta</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard -->
+    <section class="dashboard hidden" id="dashboard">
+        <div class="container">
+            <div class="dashboard__header">
+                <h1>Dashboard</h1>
+                <div class="dashboard__stats">
+                    <div class="stat-card">
+                        <div class="stat-card__value">150</div>
+                        <div class="stat-card__label">Puntos</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card__value">4.8</div>
+                        <div class="stat-card__label">Valoración</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card__value">12</div>
+                        <div class="stat-card__label">Intercambios</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="dashboard__filters">
+                <div class="filters">
+                    <div class="filter-group">
+                        <label class="form-label">Tipo de Moto</label>
+                        <select class="form-control" id="filter-tipo">
+                            <option value="">Todos</option>
+                            <option value="Touring">Touring</option>
+                            <option value="Deportiva">Deportiva</option>
+                            <option value="Cruiser">Cruiser</option>
+                            <option value="Adventure">Adventure/Trail</option>
+                            <option value="Naked">Naked</option>
+                            <option value="Scooter">Scooter/Urbana</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="form-label">Ubicación</label>
+                        <input type="text" class="form-control" id="filter-ubicacion" placeholder="Ciudad o país">
+                    </div>
+                    <div class="filter-group">
+                        <label class="form-label">Facilidades</label>
+                        <select class="form-control" id="filter-facilidades">
+                            <option value="">Cualquiera</option>
+                            <option value="garaje">Garaje Cubierto</option>
+                            <option value="herramientas">Herramientas</option>
+                            <option value="camara">Cámaras Seguridad</option>
+                            <option value="lavado">Zona Lavado</option>
+                        </select>
+                    </div>
+                    <button class="btn btn--primary" id="apply-filters">Filtrar</button>
+                </div>
+            </div>
+            
+            <div class="dashboard__content">
+                <div class="listings-grid" id="listings-grid">
+                    <!-- Listings will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Profile Section -->
+    <section class="profile hidden" id="profile">
+        <div class="container">
+            <div class="profile__header">
+                <div class="profile__info">
+                    <div class="profile__avatar">👤</div>
+                    <div class="profile__details">
+                        <h1 id="profile-name">Carlos Rodríguez</h1>
+                        <p id="profile-location">Madrid, España</p>
+                        <div class="profile__badges">
+                            <span class="badge badge--success">Verificado</span>
+                            <span class="badge badge--info">10 años experiencia</span>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn btn--outline">Editar Perfil</button>
+            </div>
+            
+            <div class="profile__content">
+                <div class="profile__section">
+                    <h2>Mi Motocicleta</h2>
+                    <div class="moto-card">
+                        <div class="moto-card__image">🏍️</div>
+                        <div class="moto-card__details">
+                            <h3 id="moto-info">BMW R1250GS Adventure</h3>
+                            <div class="moto-card__specs">
+                                <span class="spec">Adventure/Trail</span>
+                                <span class="spec">1254cc</span>
+                                <span class="spec">Licencia A</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="profile__section">
+                    <h2>Mi Alojamiento</h2>
+                    <div class="accommodation-card">
+                        <h3>Casa completa - 3 habitaciones</h3>
+                        <div class="facilities">
+                            <span class="facility">🔒 Garaje cubierto para 2 motos</span>
+                            <span class="facility">🔧 Herramientas básicas</span>
+                            <span class="facility">📹 Cámaras de seguridad</span>
+                            <span class="facility">🚿 Zona lavado motos</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Messages Section -->
+    <section class="messages hidden" id="messages">
+        <div class="container">
+            <h1>Mensajes</h1>
+            <div class="messages__content">
+                <div class="messages__list">
+                    <div class="message-item active">
+                        <span class="message-item__avatar">👩</span>
+                        <div class="message-item__content">
+                            <div class="message-item__header">
+                                <h3>Ana Martínez</h3>
+                                <span class="message-item__time">hace 2h</span>
+                            </div>
+                            <p>Hola! Me interesa tu casa en Madrid para el puente de mayo...</p>
+                        </div>
+                        <div class="message-item__badge">2</div>
+                    </div>
+                    
+                    <div class="message-item">
+                        <span class="message-item__avatar">👨</span>
+                        <div class="message-item__content">
+                            <div class="message-item__header">
+                                <h3>Marco Bianchi</h3>
+                                <span class="message-item__time">ayer</span>
+                            </div>
+                            <p>Perfecto! Confirmado el intercambio para Roma...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="chat-window">
+                    <div class="chat-header">
+                        <span class="chat-header__avatar">👩</span>
+                        <div class="chat-header__info">
+                            <h3>Ana Martínez</h3>
+                            <span>Barcelona - Ducati Panigale V4</span>
+                        </div>
+                    </div>
+                    
+                    <div class="chat-messages" id="chat-messages">
+                        <div class="message message--received">
+                            <div class="message__content">
+                                Hola Carlos! Vi tu casa en Madrid y me encantaría hacer un intercambio.
+                            </div>
+                            <div class="message__time">14:30</div>
+                        </div>
+                        
+                        <div class="message message--received">
+                            <div class="message__content">
+                                Tengo una Ducati Panigale, ¿tu garaje tiene espacio suficiente?
+                            </div>
+                            <div class="message__time">14:32</div>
+                        </div>
+                        
+                        <div class="message message--sent">
+                            <div class="message__content">
+                                ¡Hola Ana! Sí, perfecto. Mi garaje es cubierto y tiene anclajes para deportivas.
+                            </div>
+                            <div class="message__time">14:45</div>
+                        </div>
+                    </div>
+                    
+                    <div class="chat-input">
+                        <input type="text" class="form-control" placeholder="Escribe tu mensaje...">
+                        <button class="btn btn--primary">Enviar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Property Detail Modal -->
+    <div class="modal hidden" id="property-modal">
+        <div class="modal__overlay">
+            <div class="modal__content modal__content--large">
+                <div class="modal__header">
+                    <h2 id="property-title">Casa en Madrid Centro</h2>
+                    <button class="modal__close" id="close-property">&times;</button>
+                </div>
+                <div class="modal__body">
+                    <div class="property-detail">
+                        <div class="property-gallery">
+                            <div class="property-image">🏠</div>
+                        </div>
+                        
+                        <div class="property-info">
+                            <div class="property-owner">
+                                <span class="owner-avatar">👤</span>
+                                <div class="owner-details">
+                                    <h3 id="owner-name">Carlos Rodríguez</h3>
+                                    <div class="owner-rating">
+                                        <span class="stars">⭐⭐⭐⭐⭐</span>
+                                        <span id="owner-rating">4.8</span>
+                                    </div>
+                                    <p id="owner-moto">BMW R1250GS Adventure</p>
+                                </div>
+                            </div>
+                            
+                            <div class="property-specs">
+                                <div class="spec-item">
+                                    <strong>Tipo:</strong> <span id="property-type">Casa completa</span>
+                                </div>
+                                <div class="spec-item">
+                                    <strong>Habitaciones:</strong> <span id="property-rooms">3</span>
+                                </div>
+                                <div class="spec-item">
+                                    <strong>Motos compatibles:</strong> <span id="compatible-bikes">Adventure, Touring, Naked</span>
+                                </div>
+                                <div class="spec-item">
+                                    <strong>Puntos requeridos:</strong> <span id="required-points">120 puntos/noche</span>
+                                </div>
+                            </div>
+                            
+                            <div class="facilities-list">
+                                <h3>Facilidades de Seguridad</h3>
+                                <div class="facility-tags" id="security-facilities">
+                                    <span class="facility-tag">🔒 Garaje cubierto</span>
+                                    <span class="facility-tag">📹 Cámaras de seguridad</span>
+                                    <span class="facility-tag">⚓ Anclajes de suelo</span>
+                                </div>
+                                
+                                <h3>Servicios Adicionales</h3>
+                                <div class="facility-tags" id="additional-services">
+                                    <span class="facility-tag">🗺️ Rutas Sierra Madrid</span>
+                                    <span class="facility-tag">🔧 Taller BMW cercano</span>
+                                    <span class="facility-tag">🌤️ Pronóstico local</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="property-actions">
+                        <button class="btn btn--primary btn--lg">Solicitar Intercambio</button>
+                        <button class="btn btn--outline btn--lg">Enviar Mensaje</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Configuration script - loads environment variables -->
+    <script src="config.js"></script>
+    <!-- Main application script -->
+    <script src="app.js"></script>
+</body>
+</html>

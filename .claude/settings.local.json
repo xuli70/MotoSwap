@@ -6,7 +6,15 @@
       "mcp__filesystem__read_file",
       "mcp__filesystem__write_file",
       "mcp__filesystem__edit_file",
-      "Bash(start index.html)"
+      "Bash(start index.html)",
+      "Bash(dir:*)",
+      "Bash(powershell:*)",
+      "Bash(copy app.js app.old.js)",
+      "Bash(copy style.css style.old.css)",
+      "Bash(copy index.html index.old.html)",
+      "mcp__filesystem__move_file",
+      "mcp__filesystem__create_directory",
+      "mcp__filesystem__directory_tree"
     ]
   },
   "enableAllProjectMcpServers": true,
