@@ -100,14 +100,21 @@ class SupabaseClient {
 
             // Transformar datos para compatibilidad
             return {
-                data: data.map(user => ({
-                    ...user,
-                    tipo_moto: user.motorcycles?.[0]?.tipo || 'Sin especificar',
-                    marca: user.motorcycles?.[0]?.marca || 'Sin especificar',
-                    modelo: user.motorcycles?.[0]?.modelo || 'Sin especificar',
-                    cilindrada: user.motorcycles?.[0]?.cilindrada || 'N/A',
-                    licencia: user.motorcycles?.[0]?.licencia || 'N/A'
-                })),
+                data: data.map(user => {
+                    const motoTipo = user.motorcycles?.[0]?.tipo || null;
+                    // Mapear a un tipo válido si no es especificado
+                    const tipoMotoValido = motoTipo && motoTipo !== 'Sin especificar' ? motoTipo : 'Naked';
+                    
+                    return {
+                        ...user,
+                        tipo_moto: tipoMotoValido,
+                        tipo_moto_original: motoTipo, // Mantener el original para mostrar en UI
+                        marca: user.motorcycles?.[0]?.marca || 'Sin especificar',
+                        modelo: user.motorcycles?.[0]?.modelo || 'Sin especificar',
+                        cilindrada: user.motorcycles?.[0]?.cilindrada || 'N/A',
+                        licencia: user.motorcycles?.[0]?.licencia || 'N/A'
+                    };
+                }),
                 error: null
             };
         } catch (error) {
@@ -142,9 +149,13 @@ class SupabaseClient {
             if (error) throw error;
 
             // Transformar para compatibilidad
+            const motoTipo = data.motorcycles?.[0]?.tipo || null;
+            const tipoMotoValido = motoTipo && motoTipo !== 'Sin especificar' ? motoTipo : 'Naked';
+            
             const user = {
                 ...data,
-                tipo_moto: data.motorcycles?.[0]?.tipo || 'Sin especificar',
+                tipo_moto: tipoMotoValido,
+                tipo_moto_original: motoTipo, // Mantener el original para mostrar en UI
                 marca: data.motorcycles?.[0]?.marca || 'Sin especificar',
                 modelo: data.motorcycles?.[0]?.modelo || 'Sin especificar',
                 cilindrada: data.motorcycles?.[0]?.cilindrada || 'N/A',
@@ -190,16 +201,22 @@ class SupabaseClient {
             if (error) throw error;
 
             // Transformar datos para compatibilidad
-            const accommodations = data.map(acc => ({
-                ...acc,
-                propietario_nombre: acc.users.nombre,
-                propietario_email: acc.users.email,
-                valoracion_promedio: acc.users.valoracion_promedio,
-                total_intercambios: acc.users.total_intercambios,
-                moto_marca: acc.users.motorcycles?.[0]?.marca || 'Sin especificar',
-                moto_modelo: acc.users.motorcycles?.[0]?.modelo || 'Sin especificar',
-                moto_tipo: acc.users.motorcycles?.[0]?.tipo || 'Sin especificar'
-            }));
+            const accommodations = data.map(acc => {
+                const motoTipo = acc.users.motorcycles?.[0]?.tipo || null;
+                const tipoMotoValido = motoTipo && motoTipo !== 'Sin especificar' ? motoTipo : 'Naked';
+                
+                return {
+                    ...acc,
+                    propietario_nombre: acc.users.nombre,
+                    propietario_email: acc.users.email,
+                    valoracion_promedio: acc.users.valoracion_promedio,
+                    total_intercambios: acc.users.total_intercambios,
+                    moto_marca: acc.users.motorcycles?.[0]?.marca || 'Sin especificar',
+                    moto_modelo: acc.users.motorcycles?.[0]?.modelo || 'Sin especificar',
+                    moto_tipo: tipoMotoValido,
+                    moto_tipo_original: motoTipo
+                };
+            });
 
             return { data: accommodations, error: null };
         } catch (error) {
@@ -287,6 +304,22 @@ class SupabaseClient {
     async getCompatibleBikeTypes(bikeType) {
         if (!this.client) throw new Error('Cliente no inicializado');
 
+        // Validar que el tipo de moto es válido antes de consultar
+        const validBikeTypes = [
+            'Adventure/Trail',
+            'Touring', 
+            'Deportiva',
+            'Cruiser',
+            'Naked',
+            'Scooter'
+        ];
+
+        // Si el tipo no es válido, usar fallback directamente
+        if (!bikeType || bikeType === 'Sin especificar' || !validBikeTypes.includes(bikeType)) {
+            console.log(`⚠️ Tipo de moto inválido o no especificado: "${bikeType}", usando fallback`);
+            return this.getCompatibilityFallback(bikeType);
+        }
+
         try {
             const { data, error } = await this.client
                 .from('motorcycle_compatibility')
@@ -316,7 +349,13 @@ class SupabaseClient {
             'Scooter': ['Scooter', 'Naked']
         };
         
-        return compatibility[bikeType] || [bikeType];
+        // Para valores no válidos o "Sin especificar", mostrar todos los tipos
+        if (!bikeType || bikeType === 'Sin especificar' || !compatibility[bikeType]) {
+            console.log(`ℹ️ Usando compatibilidad universal para tipo: "${bikeType}"`);
+            return ['Adventure/Trail', 'Touring', 'Deportiva', 'Cruiser', 'Naked', 'Scooter'];
+        }
+        
+        return compatibility[bikeType];
     }
 
     /**
