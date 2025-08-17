@@ -443,7 +443,7 @@ function createListingCard(usuario) {
     <div class="listing-image">🏠</div>
     <div class="listing-content">
       <div class="listing-header">
-        <img src="https://via.placeholder.com/40x40/32809D/FFFFFF?text=${usuario.nombre.charAt(0)}" alt="${usuario.nombre}" class="listing-avatar">
+        <div class="listing-avatar">${usuario.nombre.charAt(0)}</div>
         <div class="listing-owner">
           <h3>${usuario.nombre}</h3>
           <p>${usuario.moto.marca} ${usuario.moto.modelo}</p>
@@ -569,7 +569,7 @@ function showPropertyDetails(usuario) {
   // Update avatar
   const ownerAvatar = document.querySelector('#property-modal .owner-avatar');
   if (ownerAvatar) {
-    ownerAvatar.src = `https://via.placeholder.com/50x50/32809D/FFFFFF?text=${usuario.nombre.charAt(0)}`;
+    ownerAvatar.textContent = usuario.nombre.charAt(0);
   }
   
   // Setup action buttons
@@ -719,7 +719,7 @@ function loadUserProfile() {
   // Update profile avatar
   const profileAvatar = document.querySelector('.profile__avatar');
   if (profileAvatar) {
-    profileAvatar.src = `https://via.placeholder.com/80x80/32809D/FFFFFF?text=${currentUser.nombre.charAt(0)}`;
+    profileAvatar.textContent = currentUser.nombre.charAt(0);
   }
 }
 
