@@ -323,7 +323,36 @@
     </div>
 
     <!-- Configuration and Scripts -->
+    <!-- Security Module (load first) -->
+    <script src="js/security.js"></script>
+    
+    <!-- Configuration (Coolify injects variables here) -->
     <script src="config.js"></script>
+    
+    <!-- Supabase Client (only if using fallback) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Main Application (ES6 modules) -->
     <script type="module" src="js/main.js"></script>
+    
+    <!-- Initialization Script -->
+    <script>
+        console.log('🚀 MotoSwap - Intercambio de Casas para Moteros');
+        console.log('🔗 Conectando con Supabase...');
+        
+        // Global error handling
+        window.addEventListener('error', function(e) {
+            if (window.MotoSwapSecurity) {
+                console.warn('🛡️ Error capturado por seguridad:', e.message);
+            }
+        });
+        
+        // Initialize when ready
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.initializeApp) {
+                window.initializeApp();
+            }
+        });
+    </script>
 </body>
 </html>

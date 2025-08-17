@@ -1,12 +1,13 @@
 # =================================
-# DOCKERFILE - MOTOSWAP COOLIFY DEPLOYMENT
-# Optimized for Coolify deployment platform
+# DOCKERFILE TEMPLATE - COOLIFY OPTIMIZED
+# Para aplicaciones web con Supabase + MCP
+# Puerto 8080, UTF-8, Variables de entorno
 # =================================
 FROM node:18-alpine
 
-# Project metadata
+# Metadatos del proyecto
 LABEL maintainer="sebastian"
-LABEL description="MotoSwap - Motorcycle house exchange platform"
+LABEL description="MotoSwap - Intercambio de casas para moteros con Supabase"
 LABEL version="1.0.0"
 
 # Configure UTF-8 for special characters (ñ, acentos, etc.)
@@ -14,14 +15,16 @@ ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 ENV LANGUAGE=C.UTF-8
 
-# Environment variables (will be overridden by Coolify)
-# Currently minimal setup - can be expanded for future Supabase integration
-ENV MOTOSWAP_ENV="production"
-ENV APP_NAME="MotoSwap"
-
-# Optional future variables (ready for Supabase integration)
+# Variables de entorno por defecto (sobrescritas por Coolify)
+# OBLIGATORIAS - Tu aplicación no funcionará sin estas
 ENV SUPABASE_URL=""
 ENV SUPABASE_ANON_KEY=""
+ENV PASSWORD_USER="usuario123"
+ENV PASSWORD_ADMIN="admin123"
+
+# OPCIONALES - Solo si tu app las usa
+ENV OPENAI_API_KEY=""
+ENV AI_MODEL="gpt-4o-mini"
 
 WORKDIR /app
 
@@ -34,16 +37,14 @@ RUN apk add --no-cache caddy wget gettext
 # Copy all project files
 COPY . .
 
-# Script to generate config.js from environment variables
-# This converts config.js.template to config.js with real values
+# Script para generar config.js desde variables de entorno
+# Esto convierte config.js.template en config.js con valores reales
 RUN echo '#!/bin/sh' > /app/generate-config.sh && \
-    echo 'echo "🔧 Generating config.js for MotoSwap..."' >> /app/generate-config.sh && \
-    echo 'if [ -f /app/config.js.template ]; then' >> /app/generate-config.sh && \
-    echo '    envsubst < /app/config.js.template > /app/config.js' >> /app/generate-config.sh && \
-    echo '    echo "✅ config.js generated successfully"' >> /app/generate-config.sh && \
-    echo 'else' >> /app/generate-config.sh && \
-    echo '    echo "ℹ️ No config.js.template found, using static configuration"' >> /app/generate-config.sh && \
-    echo 'fi' >> /app/generate-config.sh && \
+    echo 'echo "🔧 Generando config.js con variables de entorno de Coolify..."' >> /app/generate-config.sh && \
+    echo 'envsubst < /app/config.js.template > /app/config.js' >> /app/generate-config.sh && \
+    echo 'echo "✅ config.js generado exitosamente"' >> /app/generate-config.sh && \
+    echo 'echo "🔍 Verificando configuración:"' >> /app/generate-config.sh && \
+    echo 'grep -o "SUPABASE_URL.*" /app/config.js | head -1' >> /app/generate-config.sh && \
     chmod +x /app/generate-config.sh
 
 # Create Caddyfile for web server
@@ -70,13 +71,15 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:8080/ || exit 1
 
-# Startup script that executes everything in correct order
+# Script de inicio que ejecuta todo en orden correcto
 RUN echo '#!/bin/sh' > /app/start.sh && \
-    echo 'echo "🚀 Starting MotoSwap on Coolify..."' >> /app/start.sh && \
-    echo 'echo "📋 Environment: ${MOTOSWAP_ENV}"' >> /app/start.sh && \
-    echo 'echo "🏷️ App: ${APP_NAME}"' >> /app/start.sh && \
+    echo 'echo "🚀 Iniciando aplicación con Coolify + Supabase + MCP..."' >> /app/start.sh && \
+    echo 'echo "📋 Variables de entorno recibidas:"' >> /app/start.sh && \
+    echo 'echo "   SUPABASE_URL: ${SUPABASE_URL}"' >> /app/start.sh && \
+    echo 'echo "   PASSWORD_USER: [CONFIGURADO]"' >> /app/start.sh && \
+    echo 'echo "   PASSWORD_ADMIN: [CONFIGURADO]"' >> /app/start.sh && \
     echo '/app/generate-config.sh' >> /app/start.sh && \
-    echo 'echo "🌐 Starting Caddy server on port 8080..."' >> /app/start.sh && \
+    echo 'echo "🌐 Iniciando servidor Caddy en puerto 8080..."' >> /app/start.sh && \
     echo 'exec caddy run --config /app/Caddyfile --adapter caddyfile' >> /app/start.sh && \
     chmod +x /app/start.sh
 
@@ -84,15 +87,21 @@ RUN echo '#!/bin/sh' > /app/start.sh && \
 CMD ["/app/start.sh"]
 
 # =================================
-# DEPLOYMENT INSTRUCTIONS:
+# INSTRUCCIONES DE USO:
 #
-# 1. Push this repository to GitHub
-# 2. In Coolify:
-#    - Connect your GitHub repository
-#    - Set environment variables if needed
-#    - Deploy automatically
-# 3. App will be available on assigned Coolify URL
+# 1. Configurar variables en Coolify:
+#    - SUPABASE_URL: URL de tu proyecto Supabase
+#    - SUPABASE_ANON_KEY: Clave anónima de Supabase
+#    - PASSWORD_USER: Contraseña usuarios
+#    - PASSWORD_ADMIN: Contraseña admin
 #
-# Current setup works with static MotoSwap app
-# Future: Add Supabase variables when backend is integrated
+# 2. Deploy en Coolify:
+#    - Push a GitHub
+#    - Variables se inyectan automáticamente
+#    - App disponible en URL asignada
+#
+# 3. Verificar:
+#    - Logs: "config.js generado exitosamente"
+#    - App carga sin errores
+#    - Conexión Supabase funcional
 # =================================

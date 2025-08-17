@@ -14,7 +14,10 @@
       "Bash(copy index.html index.old.html)",
       "mcp__filesystem__move_file",
       "mcp__filesystem__create_directory",
-      "mcp__filesystem__directory_tree"
+      "mcp__filesystem__directory_tree",
+      "mcp__supabase3-mcp__list-tables",
+      "mcp__supabase3-mcp__query",
+      "Bash(del \"C:\\Users\\Sebastian\\000\\MotoSwap\\js\\data\\users-data.js\")"
     ]
   },
   "enableAllProjectMcpServers": true,

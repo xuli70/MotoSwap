@@ -1,13 +1,13 @@
 // MotoSwap - Dashboard Module
 // Handles property listings and property details
 
-import { appData } from '../data/users-data.js';
+import dataService from '../data/data-service.js';
 import { getCurrentUser } from '../core/state.js';
-import { getCompatibleBikeTypes, getFacilityIcon, getRandomPoints } from '../utils/helpers.js';
+import { getFacilityIcon } from '../utils/helpers.js';
 import { showModal } from '../components/modals.js';
 
 // Load and display listings
-export function loadListings() {
+export async function loadListings() {
   console.log('Loading listings...');
   const listingsGrid = document.getElementById('listings-grid');
   if (!listingsGrid) {
@@ -15,15 +15,38 @@ export function loadListings() {
     return;
   }
   
-  listingsGrid.innerHTML = '';
-  const currentUser = getCurrentUser();
+  // Mostrar loading
+  listingsGrid.innerHTML = '<div class="loading">🔄 Cargando alojamientos reales...</div>';
   
-  appData.usuarios.forEach(usuario => {
-    if (currentUser && usuario.id === currentUser.id) return; // Don't show own listing
+  try {
+    // Obtener datos reales de Supabase
+    const usuarios = await dataService.getUsuarios();
+    const currentUser = getCurrentUser();
     
-    const listingCard = createListingCard(usuario);
-    listingsGrid.appendChild(listingCard);
-  });
+    // Limpiar loading
+    listingsGrid.innerHTML = '';
+    
+    if (usuarios.length === 0) {
+      listingsGrid.innerHTML = '<div class="no-data">⚠️ No se pudieron cargar los alojamientos</div>';
+      return;
+    }
+    
+    // Filtrar usuario actual si está logueado
+    const otherUsers = usuarios.filter(usuario => 
+      !currentUser || usuario.id !== currentUser.id
+    );
+    
+    console.log(`✅ Mostrando ${otherUsers.length} alojamientos reales`);
+    
+    otherUsers.forEach(usuario => {
+      const listingCard = createListingCard(usuario);
+      listingsGrid.appendChild(listingCard);
+    });
+    
+  } catch (error) {
+    console.error('❌ Error cargando listings:', error.message);
+    listingsGrid.innerHTML = '<div class="error">❌ Error cargando alojamientos. Verificar conexión a Supabase.</div>';
+  }
 }
 
 // Create a listing card element
@@ -35,8 +58,8 @@ export function createListingCard(usuario) {
   // Generate stars based on rating
   const stars = '⭐'.repeat(Math.floor(usuario.valoracion));
   
-  // Get compatible bike types
-  const compatibleTypes = getCompatibleBikeTypes(usuario.moto.tipo);
+  // Get compatible bike types (will be loaded async)
+  let compatibleTypes = [usuario.moto.tipo]; // Default fallback
   
   card.innerHTML = `
     <div class="listing-image">🏠</div>
@@ -50,8 +73,8 @@ export function createListingCard(usuario) {
       </div>
       <h2 class="listing-title">${usuario.alojamiento.tipo}</h2>
       <p class="listing-location">📍 ${usuario.ubicacion}</p>
-      <div class="bike-compatibility">
-        ${compatibleTypes.map(type => `<span class="compatibility-tag">${type}</span>`).join('')}
+      <div class="bike-compatibility" data-bike-type="${usuario.moto.tipo}">
+        <span class="compatibility-tag">${usuario.moto.tipo}</span>
       </div>
       <div class="listing-facilities">
         ${usuario.alojamiento.facilidades.slice(0, 3).map(facilidad => 
@@ -63,10 +86,24 @@ export function createListingCard(usuario) {
           <span class="stars">${stars}</span>
           <span>${usuario.valoracion}</span>
         </div>
-        <div class="listing-points">${getRandomPoints()} pts/noche</div>
+        <div class="listing-points">${usuario.alojamiento.puntosPorNoche || 100} pts/noche</div>
       </div>
     </div>
   `;
+  
+  // Load compatible bike types asynchronously
+  dataService.getCompatibleBikeTypes(usuario.moto.tipo)
+    .then(types => {
+      const compatibilityDiv = card.querySelector('.bike-compatibility');
+      if (compatibilityDiv && types.length > 0) {
+        compatibilityDiv.innerHTML = types.map(type => 
+          `<span class="compatibility-tag">${type}</span>`
+        ).join('');
+      }
+    })
+    .catch(error => {
+      console.warn('⚠️ Error cargando compatibilidad:', error.message);
+    });
   
   // Add click event to show property details
   card.addEventListener('click', function() {
@@ -109,16 +146,32 @@ export function showPropertyDetails(usuario) {
       `).join('');
   }
   
-  // Update bike compatibility
+  // Update bike compatibility (async)
   const compatibilityContainer = modal.querySelector('.property-compatibility');
   if (compatibilityContainer) {
-    const compatibleTypes = getCompatibleBikeTypes(usuario.moto.tipo);
     compatibilityContainer.innerHTML = `
       <h3>Motos Compatibles</h3>
       <div class="compatibility-list">
-        ${compatibleTypes.map(type => `<span class="compatibility-tag">${type}</span>`).join('')}
+        <span class="loading">🔄 Cargando compatibilidad...</span>
       </div>
     `;
+    
+    dataService.getCompatibleBikeTypes(usuario.moto.tipo)
+      .then(compatibleTypes => {
+        const listDiv = compatibilityContainer.querySelector('.compatibility-list');
+        if (listDiv && compatibleTypes.length > 0) {
+          listDiv.innerHTML = compatibleTypes.map(type => 
+            `<span class="compatibility-tag">${type}</span>`
+          ).join('');
+        }
+      })
+      .catch(error => {
+        console.warn('⚠️ Error cargando compatibilidad:', error.message);
+        const listDiv = compatibilityContainer.querySelector('.compatibility-list');
+        if (listDiv) {
+          listDiv.innerHTML = `<span class="compatibility-tag">${usuario.moto.tipo}</span>`;
+        }
+      });
   }
   
   // Update garage info
@@ -132,14 +185,14 @@ export function showPropertyDetails(usuario) {
   }
   
   // Setup action buttons
-  setupPropertyActionButtons(usuario);
+  setupPropertyActionButtons(usuario, modal);
   
   // Show modal
   showModal('property');
 }
 
 // Setup property action buttons
-function setupPropertyActionButtons(usuario) {
+function setupPropertyActionButtons(usuario, modal) {
   const currentUser = getCurrentUser();
   const requestBtn = modal.querySelector('.btn--primary');
   const messageBtn = modal.querySelector('.btn--outline');
@@ -172,12 +225,17 @@ function setupPropertyActionButtons(usuario) {
 }
 
 // Initialize dashboard
-export function initializeDashboard() {
+export async function initializeDashboard() {
   console.log('Initializing dashboard...');
+  
+  // Asegurar que el data service esté listo
+  if (!dataService.initialized) {
+    await dataService.initialize();
+  }
   
   // Load listings when dashboard is first shown
   const dashboardSection = document.getElementById('dashboard');
   if (dashboardSection && !dashboardSection.classList.contains('hidden')) {
-    loadListings();
+    await loadListings();
   }
 }

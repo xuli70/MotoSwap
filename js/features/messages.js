@@ -2,7 +2,7 @@
 // Handles chat functionality and message display
 
 import { getCurrentUser } from '../core/state.js';
-import { appData } from '../data/users-data.js';
+import dataService from '../data/data-service.js';
 
 // Setup chat event listeners
 export function setupChatListeners() {
@@ -23,8 +23,8 @@ export function setupChatListeners() {
   }
 }
 
-// Send a message
-export function sendMessage() {
+// Send a message (real persistence)
+export async function sendMessage() {
   const messageInput = document.getElementById('message-input');
   const messagesContainer = document.getElementById('messages-container');
   
@@ -33,47 +33,131 @@ export function sendMessage() {
   const messageText = messageInput.value.trim();
   if (!messageText) return;
   
-  // Add sent message
-  const sentMessage = document.createElement('div');
-  sentMessage.className = 'message message--sent';
-  sentMessage.innerHTML = `
-    <div class="message__content">${messageText}</div>
-    <div class="message__time">${new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</div>
-  `;
-  messagesContainer.appendChild(sentMessage);
+  const currentUser = getCurrentUser();
+  if (!currentUser) {
+    alert('❌ Por favor inicia sesión para enviar mensajes.');
+    return;
+  }
   
-  // Clear input
-  messageInput.value = '';
+  // Get current chat recipient
+  const activeChat = document.querySelector('.chat-item--active');
+  if (!activeChat) {
+    alert('❌ Selecciona un usuario para enviar mensajes.');
+    return;
+  }
   
-  // Scroll to bottom
-  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  const recipientId = activeChat.getAttribute('data-user-id');
   
-  // Simulate response after delay
-  setTimeout(() => {
-    const responses = [
-      '¡Hola! Sí, mi garaje tiene espacio de sobra para tu moto.',
-      'Perfecto, ¿cuándo planeas venir?',
-      'Claro, te puedo mostrar las rutas locales.',
-      'Mi garaje tiene todas las herramientas que necesitas.',
-      '¡Genial! Podemos coordinar el intercambio.'
-    ];
-    
-    const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-    
-    const receivedMessage = document.createElement('div');
-    receivedMessage.className = 'message message--received';
-    receivedMessage.innerHTML = `
-      <div class="message__content">${randomResponse}</div>
+  try {
+    // Add sent message to UI immediately
+    const sentMessage = document.createElement('div');
+    sentMessage.className = 'message message--sent';
+    sentMessage.innerHTML = `
+      <div class="message__content">${messageText}</div>
       <div class="message__time">${new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</div>
     `;
-    messagesContainer.appendChild(receivedMessage);
+    messagesContainer.appendChild(sentMessage);
+    
+    // Clear input
+    messageInput.value = '';
     
     // Scroll to bottom
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
-  }, 1000 + Math.random() * 2000);
+    
+    // Save to Supabase
+    console.log('💾 Guardando mensaje en Supabase...');
+    await dataService.sendMessage(currentUser.id, recipientId, messageText, 'mensaje');
+    console.log('✅ Mensaje guardado exitosamente');
+    
+    // Simulate response after delay (para demo)
+    setTimeout(async () => {
+      const responses = [
+        '¡Hola! Sí, mi garaje tiene espacio de sobra para tu moto.',
+        'Perfecto, ¿cuándo planeas venir?',
+        'Claro, te puedo mostrar las rutas locales.',
+        'Mi garaje tiene todas las herramientas que necesitas.',
+        '¡Genial! Podemos coordinar el intercambio.'
+      ];
+      
+      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+      
+      // Save simulated response to Supabase
+      try {
+        await dataService.sendMessage(recipientId, currentUser.id, randomResponse, 'respuesta_auto');
+        
+        const receivedMessage = document.createElement('div');
+        receivedMessage.className = 'message message--received';
+        receivedMessage.innerHTML = `
+          <div class="message__content">${randomResponse}</div>
+          <div class="message__time">${new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</div>
+        `;
+        messagesContainer.appendChild(receivedMessage);
+        
+        // Scroll to bottom
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        
+        console.log('✅ Respuesta automática guardada');
+      } catch (error) {
+        console.warn('⚠️ Error guardando respuesta automática:', error.message);
+      }
+    }, 1000 + Math.random() * 2000);
+    
+  } catch (error) {
+    console.error('❌ Error enviando mensaje:', error.message);
+    alert('❌ Error enviando mensaje. Verificar conexión.');
+    
+    // Remove message from UI if failed to save
+    if (sentMessage && sentMessage.parentNode) {
+      sentMessage.parentNode.removeChild(sentMessage);
+    }
+  }
 }
 
-// Initialize sample messages
+// Load real messages from Supabase
+export async function loadConversation(userId1, userId2) {
+  console.log(`💬 Cargando conversación real entre usuarios ${userId1} y ${userId2}...`);
+  
+  const messagesContainer = document.getElementById('messages-container');
+  if (!messagesContainer) return;
+  
+  try {
+    // Mostrar loading
+    messagesContainer.innerHTML = '<div class="loading">🔄 Cargando mensajes...</div>';
+    
+    // Obtener mensajes reales de Supabase
+    const messages = await dataService.getMessages(userId1, userId2);
+    
+    if (messages.length === 0) {
+      messagesContainer.innerHTML = '<div class="no-messages">💭 No hay mensajes aún. ¡Envía el primero!</div>';
+      return;
+    }
+    
+    // Mostrar mensajes reales
+    messagesContainer.innerHTML = messages.map(msg => {
+      const isFromCurrentUser = msg.remitenteId === userId1;
+      const messageType = isFromCurrentUser ? 'sent' : 'received';
+      const time = new Date(msg.fecha).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+      
+      return `
+        <div class="message message--${messageType}">
+          <div class="message__content">${msg.contenido}</div>
+          <div class="message__time">${time}</div>
+        </div>
+      `;
+    }).join('');
+    
+    // Scroll to bottom
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    
+    console.log(`✅ Cargados ${messages.length} mensajes reales`);
+    
+  } catch (error) {
+    console.error('❌ Error cargando conversación:', error.message);
+    messagesContainer.innerHTML = '<div class="error">❌ Error cargando mensajes.</div>';
+  }
+}
+
+// Initialize sample messages (fallback)
 export function initializeSampleMessages() {
   console.log('Initializing sample messages...');
   
@@ -107,56 +191,87 @@ export function initializeSampleMessages() {
 }
 
 // Initialize messages
-export function initializeMessages() {
+export async function initializeMessages() {
   console.log('Initializing messages...');
+  
+  // Asegurar que data service esté listo
+  if (!dataService.initialized) {
+    await dataService.initialize();
+  }
   
   // Setup chat listeners
   setupChatListeners();
   
   // Load chat list
-  loadChatList();
+  await loadChatList();
 }
 
-// Load chat list sidebar
-function loadChatList() {
+// Load chat list sidebar with real users
+async function loadChatList() {
   const chatList = document.querySelector('.chat-list');
   if (!chatList) return;
   
   const currentUser = getCurrentUser();
+  if (!currentUser) {
+    chatList.innerHTML = '<div class="no-user">❌ Inicia sesión para ver chats</div>';
+    return;
+  }
   
-  // Show sample chats with other users
-  const sampleChats = appData.usuarios.slice(0, 5).filter(u => !currentUser || u.id !== currentUser.id);
-  
-  chatList.innerHTML = sampleChats.map(usuario => `
-    <div class="chat-item" data-user-id="${usuario.id}">
-      <div class="chat-item__avatar">${usuario.nombre.charAt(0)}</div>
-      <div class="chat-item__info">
-        <div class="chat-item__name">${usuario.nombre}</div>
-        <div class="chat-item__preview">Último mensaje...</div>
+  try {
+    // Mostrar loading
+    chatList.innerHTML = '<div class="loading">🔄 Cargando usuarios...</div>';
+    
+    // Obtener usuarios reales de Supabase
+    const usuarios = await dataService.getUsuarios();
+    
+    // Filtrar usuario actual
+    const otherUsers = usuarios.filter(u => u.id !== currentUser.id).slice(0, 8);
+    
+    if (otherUsers.length === 0) {
+      chatList.innerHTML = '<div class="no-users">⚠️ No hay otros usuarios disponibles</div>';
+      return;
+    }
+    
+    // Mostrar lista de usuarios reales
+    chatList.innerHTML = otherUsers.map(usuario => `
+      <div class="chat-item" data-user-id="${usuario.id}">
+        <div class="chat-item__avatar">${usuario.nombre.charAt(0)}</div>
+        <div class="chat-item__info">
+          <div class="chat-item__name">${usuario.nombre}</div>
+          <div class="chat-item__preview">${usuario.ubicacion}</div>
+        </div>
+        <div class="chat-item__moto">🏍️ ${usuario.moto.tipo}</div>
       </div>
-      <div class="chat-item__time">14:30</div>
-    </div>
-  `).join('');
-  
-  // Add click handlers to chat items
-  const chatItems = chatList.querySelectorAll('.chat-item');
-  chatItems.forEach(item => {
-    item.addEventListener('click', function() {
-      // Remove active from all
-      chatItems.forEach(i => i.classList.remove('chat-item--active'));
-      // Add active to clicked
-      this.classList.add('chat-item--active');
-      
-      // Load conversation
-      const userId = this.getAttribute('data-user-id');
-      const usuario = appData.usuarios.find(u => u.id === parseInt(userId));
-      if (usuario) {
-        const chatHeader = document.querySelector('.chat-header h3');
-        if (chatHeader) {
-          chatHeader.textContent = usuario.nombre;
+    `).join('');
+    
+    console.log(`✅ Cargados ${otherUsers.length} usuarios para chat`);
+    
+    // Add click handlers to chat items
+    const chatItems = chatList.querySelectorAll('.chat-item');
+    chatItems.forEach(item => {
+      item.addEventListener('click', async function() {
+        // Remove active from all
+        chatItems.forEach(i => i.classList.remove('chat-item--active'));
+        // Add active to clicked
+        this.classList.add('chat-item--active');
+        
+        // Load real conversation
+        const userId = this.getAttribute('data-user-id');
+        const usuario = otherUsers.find(u => u.id === userId);
+        if (usuario) {
+          const chatHeader = document.querySelector('.chat-header h3');
+          if (chatHeader) {
+            chatHeader.textContent = `${usuario.nombre} - ${usuario.moto.marca} ${usuario.moto.modelo}`;
+          }
+          
+          // Cargar conversación real
+          await loadConversation(currentUser.id, userId);
         }
-        initializeSampleMessages();
-      }
+      });
     });
-  });
+    
+  } catch (error) {
+    console.error('❌ Error cargando lista de chat:', error.message);
+    chatList.innerHTML = '<div class="error">❌ Error cargando usuarios</div>';
+  }
 }
